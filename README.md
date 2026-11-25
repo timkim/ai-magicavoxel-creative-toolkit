@@ -13,6 +13,9 @@ animations with synced 16-bit sound effects, smooth camera paths, and a procedur
 | `voxtools/fall.py` | Make any scene fall from the sky and assemble itself, in small cubes or floor by floor |
 | `voxtools/landing_sfx.py` | Synthesised SNES-style gravel sounds, one per landing piece, lighter the higher it lands |
 | `voxtools/smooth_camera.py` | Turn a few camera keyframes into a smooth per-frame path (MagicaVoxel console commands, CSV or JSON) |
+| `voxtools/wave.py` | Generate a looping ocean wave that curls over and crashes (barrel, foam, spray) as a flipbook |
+| `voxtools/texture_sand.py` | Texture flat sand: colour patches, grain, wind ripples, pebbles and shells |
+| `voxtools/palm.py` | Generate a palm tree (ringed leaning trunk, drooping fronds, coconuts) and plant it on a scene's ground |
 | `voxtools/inspect_vox.py` | Print a file's object tree; compute its world-space voxels |
 | `voxtools/isorender.py` | Quick isometric PNG previews of objects, without opening MagicaVoxel |
 | `voxtools/city/add_assets.py` | 15 buildings + 16 terrain tiles, as a standalone `.vox` or added into your own scene |
@@ -60,6 +63,63 @@ python landing_sfx.py scene_fall.vox sfx/ --fps 30
 Writes one WAV for the whole animation (starting at frame 0), eight single "crunch" one-shots, and a
 per-frame landing count. Sounds are synthesised (filtered noise, 32 kHz crush, short echo), so there are no
 samples to license.
+
+## Ocean waves
+
+```
+python wave.py wave.vox                                   # 24-frame loop, 256 long, 150 high
+python wave.py wave.vox --frames 32 --length 768 --height 170
+python wave.py wave.vox --peel                            # the break travels along the wave instead
+python wave.py wave.vox --length 512 --segment 24         # 512 long, built from 24-long blocks
+python wave.py wave.vox --length 512 --segment 24 --width 24 --zsize 48 --height 26 --thickness 2 --margin 3
+                                                          # a small wave whose whole break fits 24x24x48 blocks
+python wave.py set.vox --set 3 --length 512 --segment 24 --width 24 --zsize 48 --height 26 --thickness 2 \
+    --margin 3 --frames 30 --step 1 --sea-width 144 --travel 96 --beach 24 --ocean 256
+                                                          # three waves rolling in and crashing on a beach,
+                                                          # with 256 of open ocean behind them
+python wave.py scene_plus_wave.vox --into scene.vox       # add a wave to a copy of a scene
+```
+
+Builds a sheet of water from a cross-section and runs it through a real plunging break over the loop:
+the swell rises, the crest curls, the lip shoots out and lands in front of the face (the barrel), the
+impact explodes into foam and spray, and the next swell builds. The loop is seamless. If the break is wider than `--width`, it is squeezed horizontally to fit (same amount on every frame).
+With `--set N`, N waves travel toward a sand beach, evenly staggered over the loop: each rises out of the
+flat sea at the back, breaks as it comes in and crashes near the shore while the next one builds behind it.
+`--ocean` adds open water behind the waves with gentle swells rolling toward the shore (`--ocean-swell`,
+`--swell-length`); they taper off where they meet the breaking zone and loop with the waves.
+The sea is tiled into blocks of `--width` x `--segment` x `--zsize`. Spray is scattered in 3D as clumps of 1-4 voxel cubes. As the lip throws, it splits into irregular fingers that
+reach out and curl down by different amounts (`--fingers`, `--finger-width`), so the leading edge is scalloped. Colours (`--water`, `--shade`, `--foam`), thickness, spray, frame count
+and timing (`--step`) are all options. Lengths over 256 are split into aligned 256-long segments, since
+that's MagicaVoxel's model size limit.
+
+## Sand texture
+
+```
+python texture_sand.py beach.vox beach_textured.vox             # texture every voxel of colour index 4
+python texture_sand.py beach.vox out.vox --sand 12 --ripple 9 --ripple-angle 30 --no-pebbles
+```
+
+Recolours the chosen sand colour with patchy light/dark tones and fine grain, raises wavy wind ripples
+in patches on the surface, and scatters a few pebbles and shell bits. Everything is based on world
+position, so the texture lines up across objects and stays identical in every animation frame. New sand
+shades go into free palette slots; the original file is not modified.
+
+## Palm trees
+
+```
+python palm.py palm.vox                                         # standalone tree
+python palm.py beach_palm.vox --into beach.vox --at=-300,80     # plant on the ground at world x,y
+python palm.py palm.vox --height 60 --lean 22 --lean-dir 90 --fronds 10 --seed 9
+python palm.py big_palm.vox --scale 2 --lean 26 --lean-dir 90   # twice the size, leaning to the side
+python palm.py palm.vox --sway 1.5 --frames 30 --flip-y         # mirrored, swaying gently in a 30-frame loop
+python palm.py beach2.vox --into beach.vox --replace --at=-330,40 --sway 1.5   # swap out an existing palm_tree
+```
+
+Builds a curved, ringed trunk that leans and curves back upright, a crown with coconuts, and fronds that
+arch out and droop with leaflets on both sides. With `--into`, it finds the ground height at that spot and
+plants the tree there in a copy of the scene; colours go into free palette slots. Change `--seed` for a
+different tree. `--sway` animates it as a looping flipbook: the trunk rocks with the wind and every frond
+bobs on its own timing (`--wind-dir`, `--frames`, `--step`).
 
 ## Smooth camera paths
 

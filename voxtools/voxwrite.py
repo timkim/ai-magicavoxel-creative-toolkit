@@ -24,9 +24,13 @@ def chunk(cid, content):
     return cid.encode('latin1') + struct.pack('<ii', len(content), 0) + content
 
 def size_xyzi(size, voxels):
+    """voxels: list of (x, y, z, colour) tuples, or an (N, 4) uint8 numpy array (much faster)."""
     sx, sy, sz = size
     c = chunk('SIZE', struct.pack('<iii', sx, sy, sz))
-    body = struct.pack('<i', len(voxels)) + b''.join(struct.pack('<BBBB', *v) for v in voxels)
+    if hasattr(voxels, 'tobytes'):
+        body = struct.pack('<i', len(voxels)) + voxels.astype('uint8').tobytes()
+    else:
+        body = struct.pack('<i', len(voxels)) + b''.join(struct.pack('<BBBB', *v) for v in voxels)
     return c + chunk('XYZI', body)
 
 def rgba_bytes(palette):
