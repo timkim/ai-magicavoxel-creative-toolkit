@@ -4,6 +4,10 @@ Skills, scripts and tools I use with AI assistants (Claude) for voxel art in
 [MagicaVoxel](https://ephtracy.github.io/): reading and writing `.vox` files, "assemble from the sky"
 animations with synced 16-bit sound effects, smooth camera paths, and a procedural city kit.
 
+Falling city:
+https://github.com/user-attachments/assets/94ba1619-82f0-463e-80f1-b31242173b97
+
+
 ## What's inside
 
 | Path | What it does |
