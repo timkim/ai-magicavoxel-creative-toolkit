@@ -1,0 +1,10 @@
+{
+  "frames": 165,
+  "keyframes": [
+    {"frame": 0,   "x": -8, "y": -8, "z": 30, "zoom": 260,  "pitch": -18, "yaw": 35,  "roll": 0},
+    {"frame": 40,  "zoom": 340,  "pitch": -22, "yaw": 50},
+    {"frame": 100, "zoom": 1200, "pitch": -30, "yaw": 95},
+    {"frame": 140, "x": 0, "y": 0, "z": 0, "zoom": 1520, "pitch": -44, "yaw": 125},
+    {"frame": 164, "zoom": 1600, "pitch": -52, "yaw": 135}
+  ]
+}

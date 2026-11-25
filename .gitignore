@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.vox
+*.wav
+!examples/*.vox
+.DS_Store
+Thumbs.db
