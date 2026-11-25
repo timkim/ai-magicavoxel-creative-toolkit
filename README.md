@@ -1,12 +1,79 @@
-# ai-magicavoxel-creative-toolkit
+<h1 align="center">ai-magicavoxel-creative-toolkit</h1>
 
-Skills, scripts and tools I use with AI assistants (Claude) for voxel art in
-[MagicaVoxel](https://ephtracy.github.io/): reading and writing `.vox` files, "assemble from the sky"
-animations with synced 16-bit sound effects, smooth camera paths, and a procedural city kit.
+<p align="center">
+  <b>Python tools and a Claude skill for making animated voxel art in <a href="https://ephtracy.github.io/">MagicaVoxel</a>.</b><br>
+  Cities that fall from the sky &middot; crashing waves &middot; swaying palms &middot; smooth camera moves &middot; synthesised 16-bit sound
+</p>
 
-Falling city:
+<p align="center">
+  <img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-blue">
+  <img alt="Python 3.9+" src="https://img.shields.io/badge/python-3.9%2B-3776AB">
+  <img alt="MagicaVoxel 0.99.7" src="https://img.shields.io/badge/MagicaVoxel-0.99.7-orange">
+  <img alt="Made with Claude" src="https://img.shields.io/badge/made%20with-Claude-D97757">
+</p>
+
+## 🏙️ Falling city
+
 https://github.com/user-attachments/assets/94ba1619-82f0-463e-80f1-b31242173b97
 
+*Seven seconds, one generated metropolis. Roads touch down on the empty sand first, then thousands of
+buildings rain down floor by floor, filling in block after block out to the horizon, while the camera climbs
+from street level to a high view of a city that fills the whole frame. Every landing gets its own 16-bit
+crunch.*
+
+<details>
+<summary><b>How it's made: the commands</b></summary>
+
+All scripts write a **new** file and never touch their input. Run from `voxtools/`.
+
+**1. Build a city.** Generate tile models (or use your own library of named objects), then lay out a
+whole zoned city with roads, traffic lights, cars and chimney smoke:
+
+```
+cd city
+python add_assets.py library_plus.vox --into my_library.vox     # optional: add the built-in buildings and terrain
+python city_generator.py library_plus.vox city.vox --seed 7 --blocks 25
+cd ..
+```
+
+**2. Make it fall.** Cut every building into floor slices that drop from the sky with a gravity ease-in.
+`--order height` lands everything bottom-up across the scene (roads first, rooftops last); `--order wave`
+spreads the landings out from one spot instead:
+
+```
+python fall.py city/city.vox city_fall.vox --pieces floors
+python fall.py city/city.vox city_fall.vox --pieces floors --order wave --centre 48_city_hall
+```
+
+The script prints the last landing frame: extend MagicaVoxel's timeline (0–30 by default) to reach it.
+Use `--duration`, `--stack` and `--drop` to change the pacing.
+
+**3. Move the camera.** The camera move is driven by [MagicaVoxel-Animation-Script](https://github.com/timkim/MagicaVoxel-Animation-Script), which steps
+MagicaVoxel's camera and animation frame by frame and renders each one. Write a few camera keyframes (start
+low and close to the ground, end high with the city filling the frame; see `examples/camera_keys.json`),
+then smooth them into one segment per frame for the script. Zoom eases on a log scale, so a big pull-back
+stays steady:
+
+```
+python smooth_camera.py ../examples/camera_keys.json camera_path.json --format segments
+```
+
+Feed `camera_path.json` to [MagicaVoxel-Animation-Script](https://github.com/timkim/MagicaVoxel-Animation-Script) to render the move. (`--format console --with-time` instead gives one
+MagicaVoxel console line per frame, handy for checking a single pose by hand.)
+
+**4. Add the sound.** One synthesised gravel crunch per landing piece, lighter for pieces landing higher
+up:
+
+```
+python landing_sfx.py city_fall.vox sfx/ --fps 30
+```
+
+Lay `sfx/city_fall_landings_30fps.wav` under your render starting at frame 0.
+
+**5. Render.** Turn on Render → Sample → Geometry → **Sparse** first, or big scenes render with missing
+pieces (it's an app setting, so set it every session).
+
+</details>
 
 ## What's inside
 
@@ -187,7 +254,7 @@ through them with no stop-and-go jitter, and zoom moves on a log scale so pull-b
 
 - `console`: one MagicaVoxel console line per frame (`cam rx … | cam ry … | … | set a_time N`).
 - `csv`: a table of values.
-- `segments`: JSON one-frame segments for camera-driver scripts.
+- `segments`: JSON one-frame segments for [MagicaVoxel-Animation-Script](https://github.com/timkim/MagicaVoxel-Animation-Script), which plays them to animate and render the camera.
 
 ## City kit
 
