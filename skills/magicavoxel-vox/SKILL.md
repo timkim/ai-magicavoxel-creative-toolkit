@@ -7,7 +7,8 @@ description: Use when reading, generating, patching or animating MagicaVoxel .vo
 
 The Python tools this skill refers to live in the `voxtools/` folder of this repository
 (`voxlib.py` reader, `voxwrite.py` writer, `scenegraph.py`, `fall.py`, `landing_sfx.py`,
-`smooth_camera.py`, `inspect_vox.py`, `isorender.py`, and `city/`). Copy them into the working
+`smooth_camera.py`, `inspect_vox.py`, `isorender.py`, `vox_preview.py`, `wave.py`, `texture_sand.py`,
+`palm.py`, `beach_props.py`, `scene_sfx.py`, and `city/`). Copy them into the working
 directory and import them rather than re-deriving the format.
 
 Never overwrite the user's original files: write new files with a new name, and keep experiments
@@ -42,6 +43,8 @@ in a separate test folder.
    the palette panel (display slot -> index); it does not change which colour a voxel uses.
 10. **Rotation byte `_r`:** bits 0-1 = column of the non-zero entry in row 0, bits 2-3 = row 1, bits
     4/5/6 = sign of rows 0/1/2. z rotations: 4 = 0°, 17 = 90°, 52 = 180°, 33 = 270°.
+11. **Hidden layers:** `LAYR` chunks carry `_hidden`. Copying another file's `LAYR` can put your new
+    nodes on a hidden layer (they vanish in the editor and the render). Check which layer you assign.
 
 ## File format reference
 
@@ -104,7 +107,38 @@ palette chunks. Read them for exact byte layouts. Quick summary (all integers li
    and reuse the original model slot for the first piece (only if nothing else uses it).
 3. Save with renumbering. Check that ids are sequential, that depth-first order equals chunk order, and
    that landed voxel positions are identical to the original (`tests/test_fall.py` does this).
-4. Verify in MagicaVoxel (below).
+4. Check composition before opening MagicaVoxel: `python vox_preview.py scene.vox look.png --eye=X,Y,Z
+   --yaw D --frame N` (MagicaVoxel's camera is a 45° vertical FOV). Looking along +x, screen-right is -y.
+5. Verify in MagicaVoxel (below).
+
+### Adding things to an existing scene
+
+- New colours go into **unused palette slots** (scan every model's indices first); never recolour an
+  existing slot. `palm.py`, `texture_sand.py` and `beach_props.py` all do this.
+- **Ground height** = highest voxel per column across static objects, plus the voxels of flipbooks that
+  stay put across the loop (sand inside animated wave blocks). Skip props, birds and the thing you're
+  replacing.
+- Match loops: animated props use the same frame count as the waves/palms (30), with a repeat of the
+  first model at the end of every flipbook so the loop is seamless.
+- Negative coordinates on the command line need `--opt=-300,80` (with `=`), or argparse reads them as
+  options.
+- Big scenes: keep separate models per block (e.g. 24-wide flipbook strips) instead of one huge model;
+  MagicaVoxel models are capped at 256 per axis.
+
+### Sound for a render (`scene_sfx.py`)
+
+- Time sounds to **the render the user made**, not to your animation file: they may have re-animated
+  things or stretched the clip (a 3x stretch shows each frame 3 times). Measure on-screen motion
+  per frame (frame differences in a region, crops of key frames), and take the user's frame numbers as
+  final when they give them.
+- Put clacks on the frames where claws *close*, landings where things touch down, and keep separate
+  events from overlapping (e.g. gull cries away from crab clacks).
+- Alternating two pitches quickly reads as a distracting trill; use one pitch for repeated ticks.
+  Gulls need a buzzy, nasal, raspy cry (jump up then a long slide down, plus short "kyow" laugh notes),
+  not a smooth glide, and sound distant when quiet, low-passed and mostly echo.
+- Don't peak-normalise the final mix when the user asks to lower one part (normalising turns it straight
+  back up); keep a fixed reference level and soft-limit only transients. Mix circularly so tails wrap
+  and the loop is seamless.
 
 ## Verifying in MagicaVoxel with computer use
 
