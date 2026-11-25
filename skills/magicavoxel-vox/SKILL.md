@@ -43,6 +43,54 @@ in a separate test folder.
 10. **Rotation byte `_r`:** bits 0-1 = column of the non-zero entry in row 0, bits 2-3 = row 1, bits
     4/5/6 = sign of rows 0/1/2. z rotations: 4 = 0°, 17 = 90°, 52 = 180°, 33 = 270°.
 
+## File format reference
+
+The official spec is in `references/` (copied from
+[ephtracy/voxel-model](https://github.com/ephtracy/voxel-model), MIT licence):
+`MagicaVoxel-file-format-vox.txt` covers the container, models and palette, and
+`MagicaVoxel-file-format-vox-extension.txt` covers the scene graph, materials, layers, camera and
+palette chunks. Read them for exact byte layouts. Quick summary (all integers little-endian):
+
+- **Container:** `VOX ` + int32 version, then the `MAIN` chunk holding every other chunk. Each chunk
+  is a 4-char id, int32 content size N, int32 children size M, then the content and the children.
+- **Models:** `SIZE` (int32 x, y, z; z is up) followed by `XYZI` (int32 count, then 1 byte each
+  of x, y, z, colour index per voxel). A model's id is its position among the SIZE/XYZI pairs.
+- **Palette:** `RGBA` has 256 entries of R, G, B, A bytes; entry k (0-254) is colour index k+1.
+- **Building blocks:** STRING = int32 length + bytes (no terminating zero). DICT = int32 count +
+  that many STRING key/value pairs. Every value is text: numbers as decimal strings, vectors as
+  `"x y z"`.
+- **Rotation byte `_r`:** bits 0-1 give the column of the non-zero entry in row 0, bits 2-3 the
+  column in row 1 (row 2 takes the remaining column), and bits 4/5/6 are the signs of rows 0/1/2
+  (1 = negative).
+- **Scene graph:** transform `nTRN` (id, DICT `_name`/`_hidden`, child id, reserved -1, layer id,
+  frame count >= 1, one DICT per frame with `_r`/`_t`/`_f`), group `nGRP` (id, DICT, child ids),
+  and shape `nSHP` (id, DICT, at least one model id each with a DICT holding `_f`). The root is
+  transform 0 -> group 1.
+- **Other chunks:**
+  - `MATL`: one per palette index (id = index); properties such as `_type` (`_diffuse`,
+    `_metal`, `_glass`, `_emit`), `_weight`, `_rough`, `_spec`, `_ior`, `_att`, `_flux`.
+  - `LAYR`: id, DICT `_name`/`_hidden`, reserved -1.
+  - `rOBJ`: render settings, one DICT each.
+  - `rCAM`: id, then DICT `_mode`, `_focus`, `_angle`, `_radius`, `_frustum`, `_fov`.
+  - `NOTE`: palette row names.
+  - `IMAP`: palette display order.
+- **Deprecated:** `PACK` (pre-0.98 animation) and `MATT` (replaced by `MATL`).
+
+**Where real files differ from the spec text (MagicaVoxel 0.99.7):**
+- **Version:** files are written with version **200**, not 150.
+- **IMAP:** stored as **256 single bytes** (display slot -> palette index), not 256 int32.
+- **Undocumented keys:** `nTRN` `_frm_t` (pose shown in the editor for animated nodes), and
+  `nSHP` `_loop` / `_frm_id` (flipbook looping and the model shown in the editor). The root
+  transform uses layer **-1**.
+- **MATL:** a missing `_type` means diffuse. Files also carry extra undocumented keys (e.g.
+  `_ri`, `_g`), so copy `MATL` chunks byte for byte rather than rebuilding them.
+- **Count of other chunks:** MagicaVoxel writes 16 `LAYR`, 256 `MATL`, several `rOBJ` and several
+  `rCAM` chunks. Copy them all from the source file.
+- **No default palette needed:** files always include `RGBA`, so the spec's default palette only
+  matters for very old files.
+- **Spec omits node order:** it doesn't mention the depth-first node-order rule (rule 1 above), so
+  follow rule 1 regardless.
+
 ## Sanity check for any writer change
 
 `load_scene(x).save(y, x)` on an untouched MagicaVoxel file must be byte-identical.

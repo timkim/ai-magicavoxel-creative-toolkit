@@ -116,6 +116,9 @@ MagicaVoxel's whole 2048³ scene.
 official spec but that MagicaVoxel enforces. The most important is node ordering: break it and parts of
 your scene silently vanish. It also covers how to verify results in the app with computer use. Add the
 folder as a custom skill in Claude, and keep `voxtools/` alongside so the skill can use the scripts.
+`skills/magicavoxel-vox/references/` holds the official `.vox` format spec from
+[ephtracy/voxel-model](https://github.com/ephtracy/voxel-model) (MIT, licence included). The skill
+summarises it and lists where real files differ from it.
 
 ## Notes
 
