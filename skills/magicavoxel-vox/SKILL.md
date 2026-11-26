@@ -140,6 +140,34 @@ palette chunks. Read them for exact byte layouts. Quick summary (all integers li
   back up); keep a fixed reference level and soft-limit only transients. Mix circularly so tails wrap
   and the loop is seamless.
 
+### Cameras: file vs. panel vs. console (verified in MagicaVoxel 0.99.7)
+
+The ten `rCAM` chunks (ids 0-9) are the ten camera slots in the Render tab's Camera panel (bottom right).
+Only slots someone stored hold real values; unused slots are `pers` with focus, angle and radius all 0.
+Slots only reach the file when the user saves (Ctrl+S), so the live session can differ from the file:
+read the file again after they save, or ask for a screenshot of the panel.
+
+| Camera panel / console command | Stored in `rCAM` |
+|---|---|
+| X, Y, Z (`cam x`, `cam y`, `cam z`) | `_focus` x y z |
+| Pitch (`cam rx`) | `_angle` first value (same sign) |
+| Yaw (`cam ry`) | `_angle` second value **with the sign flipped** (file `8.5` = panel `-8.5`) |
+| Roll (`cam rz`) | `_angle` third value |
+| Zoom (`cam zoom`), orthographic | **2 x `_frustum`** (file `104.578` = panel `209.2`); `_radius` is just a fixed far distance |
+| Fov | `_fov` |
+| Pers / Orth | `_mode` |
+
+- Console yaw wraps into -180..180 (`cam ry 270` shows -90), so a 360 spin can interpolate yaw from
+  its start to start +/- 360.
+- In the panel, a digit 0-9 only *selects* a slot; **L** loads the selected slot into the view and **S**
+  stores the current view into it.
+- Camera files for MagicaVoxel-Animation-Script are in panel units (zoom = 2 x frustum, yaw negated).
+  Most robust: have the user load the start slot with **L**, and send only the properties that change
+  (e.g. just yaw and zoom), so everything else stays exactly as the slot set it.
+- Not yet verified: perspective-mode zoom (probably `_radius`) and the roll sign.
+- If MagicaVoxel is already open, `open_application` starts a second, empty instance. Screenshot first
+  and use the existing window; close an accidental empty one without saving.
+
 ## Verifying in MagicaVoxel with computer use
 
 - **Open a file:** Ctrl+O. If you get "Model unsaved, save changes to file?", click **No** (never
